@@ -1,12 +1,10 @@
 
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.remote.webelement import WebElement
 from icecream import ic
-from time import sleep
+from bs4 import BeautifulSoup
+from bs4.element import Tag, ResultSet
+import requests as rq
+import re
+
 
 class Crawler:
     def __init__(self) -> None:
@@ -17,41 +15,84 @@ class Crawler:
                                             'trinkets-container rebirth', 'afterbirthtrinkets-container',
                                             'afterbirthplustrinkets-container', 'tarot-container rebirth']
 
-        self._options: webdriver.ChromeOptions = webdriver.ChromeOptions()
+        self._base_soup: BeautifulSoup = BeautifulSoup(rq.get(self._base_uri).content, 'lxml')
+
+        self._all_categories: list[ResultSet[Tag]] = [self._base_soup.find_all('div', {'class': i}) for i in self._item_categories]
+
+        self._all_items: list[ResultSet[Tag]] = []
+        for result_set in self._all_categories:
+            for tag in result_set:
+                self._all_items.append(tag.find_all('li', {'class': 'textbox'}))
+
+        self._all_tags: list[str] = []
+
+        for result_set in self._all_items:
+            for tag in result_set:
+                self._all_tags.append(tag.find('p', {'class': 'tags'}).string)
 
 
-        #self._options.add_argument('--headless')
-        #self._options.add_argument('window-size=1920x1080')
 
-        self._driver: webdriver.Chrome = webdriver.Chrome(options=self._options)
-        self._wait: WebDriverWait = WebDriverWait(self._driver, 5)
+    def _match_titles(self, item_name: str) -> list[Tag]:
+        matches: list[Tag] = []
+        for result_set in self._all_items:
+            for tag in result_set:
+                current_test: re.Match = re.match(f'.*{item_name}.*', tag.p.string, flags=re.I)
 
-        self._driver.get(self._base_uri)
+                if not current_test:
+                    continue
+                else:
+                    matches.append(tag)
 
-    def search(self, item: str) -> None:
-        search_field: WebElement = self._wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'search-input')))
+        return matches
 
-        search_field.send_keys(item)
 
-        sleep(0.5)
+    def _match_tags(self, item_name: str) -> list[Tag]:
+        matches: list[Tag] = []
 
-        #items_categorized: list[WebElement] = [self._driver.find_element(By.CSS_SELECTOR, f'.{category.replace(' ', '.')}') for category in self._item_categories]
+        for result_set in self._all_items:
+            for item, tag in zip(result_set, self._all_tags):
+                current_test: re.Match = re.match(f'.*{item_name}.*', tag, flags=re.I)
 
-        #items_found = list(filter(lambda i: bool(i.is_displayed()), self._wait.until(EC.visibility_of_any_elements_located((By.CLASS_NAME, 'textbox')))))
+                if not current_test:
+                    continue
+                else:
+                    matches.append(item)
 
-        items_found = self._wait.until(EC.visibility_of_any_elements_located((By.CLASS_NAME, 'textbox')))
+        return matches
 
-        if len(items_found) > 0:
-            print("Found items:\n")
-            for i in items_found:
-                print(f'{i.text}')
+
+    def _search_items(self, item_name: str) -> list[Tag]:
+
+        matches: list[Tag] = self._match_titles(item_name)
+
+        matches.extend(self._match_tags(item_name))
+
+        return matches
+
+
+    def pretty_print_items(self, item_name: str) -> None:
+        matches: list[Tag] = self._search_items(item_name)
+
+        for tag in matches:
+            lines: list[Tag] = tag.find_all('p', class_=False)
+
+            try:
+                print(f'Item name: {tag.p.string}\n{tag.find('p', {'class': 'r-itemid'}).string}\n'
+                      f'{tag.find('p', {'class': 'quality'}).string}\n\nItem Description:\n\n')
+            except AttributeError:
+                print(f'Item name: {tag.p.string}\n{tag.find('p', {'class': 'r-itemid'}).string}\n')
+
+            for line in lines:
+                print(line.string)
+            print('-'*40, '\n')
 
 
 
 def main() -> None:
     crawler: Crawler = Crawler()
 
-    crawler.search('Polyph')
+    crawler.pretty_print_items("tech")
+
 
 
 if __name__ == '__main__':
