@@ -1,5 +1,5 @@
-
 from icecream import ic
+import colorama
 from bs4 import BeautifulSoup
 from bs4.element import Tag, ResultSet
 import requests as rq
@@ -8,7 +8,14 @@ import re
 
 class Crawler:
     def __init__(self) -> None:
+        colorama.init(autoreset=True)
+
+        self._quality_to_background: dict[str, str] = {'1': colorama.Back.LIGHTBLUE_EX, '2': colorama.Back.GREEN,
+                                                       '3': colorama.Back.LIGHTCYAN_EX, '4': colorama.Back.MAGENTA}
+
+
         self._base_uri: str = 'https://www.tboi.com'
+
 
         self._item_categories: list[str] = ['repentanceitems-container', 'items-container rebirth',
                                             'afterbirthitems-container rebirth', 'afterbirthplusitems-container rebirth',
@@ -77,21 +84,24 @@ class Crawler:
             lines: list[Tag] = tag.find_all('p', class_=False)
 
             try:
-                print(f'Item name: {tag.p.string}\n{tag.find('p', {'class': 'r-itemid'}).string}\n'
-                      f'{tag.find('p', {'class': 'quality'}).string}\n\nItem Description:\n\n')
+                quality: str = tag.find('p', {'class': 'quality'}).string[-1]
+                print(f'Item name: {colorama.Fore.LIGHTBLUE_EX}{tag.p.string}{colorama.Fore.RESET}\n'
+                      f'{tag.find('p', {'class': 'r-itemid'}).string}\n'
+                      f'Quality: {self._quality_to_background[quality]}{colorama.Fore.BLACK}{quality}'
+                      f'{colorama.Back.RESET}{colorama.Fore.RESET}\n\nItem Description:\n\n')
             except AttributeError:
                 print(f'Item name: {tag.p.string}\n{tag.find('p', {'class': 'r-itemid'}).string}\n')
 
             for line in lines:
-                print(line.string)
-            print('-'*40, '\n')
+                print(f'{colorama.Fore.LIGHTBLUE_EX}{line.string}')
+            print(f'{colorama.Fore.RED}-'*40, '\n')
 
 
 
 def main() -> None:
     crawler: Crawler = Crawler()
 
-    crawler.pretty_print_items("tech")
+    crawler.pretty_print_items("mega mush")
 
 
 
