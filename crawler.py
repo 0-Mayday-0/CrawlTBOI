@@ -97,7 +97,11 @@ class Crawler:
                       f'Quality: {self._quality_to_background[quality]}{colorama.Fore.BLACK}{quality}'
                       f'{colorama.Back.RESET}{colorama.Fore.RESET}\n\nItem Description:\n\n')
             except AttributeError:
-                print(f'Item name: {tag.p.string}\n{tag.find('p', {'class': 'r-itemid'}).string}\n')
+                try:
+                    print(f'Item name: {tag.p.string}\n{tag.find('p', {'class': 'r-itemid'}).string}\n')
+
+                except AttributeError:
+                    print(f'{colorama.Fore.RED}Search too broad, try narrowing the search term.')
 
             for line in lines:
                 print(f'{colorama.Fore.LIGHTBLUE_EX}{line.string}')
@@ -108,7 +112,7 @@ class Crawler:
 def main() -> None:
     crawler: Crawler = Crawler()
 
-    crawler.pretty_print_items("asdas")
+    crawler.pretty_print_items("")
 
 
 
