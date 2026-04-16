@@ -10,7 +10,8 @@ class Crawler:
     def __init__(self) -> None:
         colorama.init(autoreset=True)
 
-        self._quality_to_background: dict[str, str] = {'1': colorama.Back.LIGHTBLUE_EX, '2': colorama.Back.GREEN,
+        self._quality_to_background: dict[str, str] = {'0': colorama.Back.WHITE,
+                                                       '1': colorama.Back.LIGHTBLUE_EX, '2': colorama.Back.GREEN,
                                                        '3': colorama.Back.LIGHTCYAN_EX, '4': colorama.Back.MAGENTA}
 
 
@@ -68,7 +69,9 @@ class Crawler:
         return matches
 
 
-    def _search_items(self, item_name: str) -> list[Tag]:
+    def _search_items(self, item_name: str) -> list[Tag] | None:
+        if not item_name:
+            return None
 
         matches: list[Tag] = self._match_titles(item_name)
 
@@ -79,6 +82,10 @@ class Crawler:
 
     def pretty_print_items(self, item_name: str) -> None:
         matches: list[Tag] = self._search_items(item_name)
+
+        if not matches:
+            print(f'{colorama.Fore.RED}No item found with that name, or empty string detected.\n')
+            return None
 
         for tag in matches:
             lines: list[Tag] = tag.find_all('p', class_=False)
@@ -101,7 +108,7 @@ class Crawler:
 def main() -> None:
     crawler: Crawler = Crawler()
 
-    crawler.pretty_print_items("mega mush")
+    crawler.pretty_print_items("asdas")
 
 
 
